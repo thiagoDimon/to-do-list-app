@@ -1,36 +1,48 @@
 import * as React from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet } from 'react-native';
 import { Checkbox, FAB } from 'react-native-paper';
+import openDB from '../../db';
 
 function Home({ navigation }) {
-    const [listaObj, setListaObj] = React.useState([
-        { a: 'test1', b: 'test2', c: 'test3', checked: false },
-        { a: 'test111', b: 'test222', c: 'test333', checked: false },
-    ]);
+    const db = openDB();
+    const [tarefas, setTarefas] = React.useState([]);
+
+    async function fetchData() {
+        const statement = await db.getAllAsync('select * from tarefas');
+        const tasks = statement;
+        setTarefas(tasks);
+    }
+
+    React.useEffect(() => {
+        const recarregar = navigation.params?.refresh ?? false
+        if (recarregar) {
+            return fetchData()
+        }
+        return fetchData();
+    }, [navigation.params?.refresh])
 
     return (
-        <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }}>
             <FlatList
-                data={listaObj}
-                renderItem={({ item, index }) => (
+                data={tarefas}
+                renderItem={({ item, index }) =>
                     <Checkbox.Item
-                        label={item.a}
-                        value={item.b}
-                        status={item.checked ? 'checked' : 'unchecked'}
+                        label={item.descricao}
+                        status={item?.situacao == 'P' ? 'unchecked' : 'checked'}
                         onPress={() => {
-                            const tempArr = [...listaObj];
-                            tempArr.splice(index, 1, { ...item, checked: !item.checked });
-                            setListaObj(tempArr);
+                            const tempArr = [...tarefas];
+                            tempArr.splice(index, 1, { ...item, situacao: item.situacao == 'P' ? 'C' : 'P' });
+                            setTarefas(tempArr);
                         }}
                     />
-                )}
+                }
             />
             <FAB
                 icon="plus"
                 style={styles.fab}
                 onPress={() => navigation.navigate('Cadastrar Tarefa')}
             />
-        </View>
+        </ScrollView>
     )
 }
 
